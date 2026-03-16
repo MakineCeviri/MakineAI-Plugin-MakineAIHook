@@ -1,106 +1,148 @@
 # MakineAI TextHook
 
-> Oyun belleğinden metin çıkarma ve gömülü çeviri eklentisi
+> Oyun belleğinden doğrudan metin çıkarma eklentisi — MakineAI Launcher için.
 
-MakineAI Launcher için resmi metin hooking eklentisi. Oyunların bellek fonksiyonlarını yakalayarak metin çıkarır ve doğrudan oyun içine çeviri gömer.
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
 
 ## Özellikler
 
-- **MinHook Inline Hooking** — Trampoline tabanlı fonksiyon yakalama (birincil yöntem)
-- **VEH Breakpoint** — INT3 + tek adım istisna işleyici (64-bit yedek)
-- **Bellek Okuma** — Bilinen adreslerden doğrudan okuma (polling)
-- **Engine Handler'lar** — Unity, Unreal, RPGMaker, Ren'Py desteği
-- **Gömülü Çeviri** — Çeviriyi doğrudan oyun belleğine yazar
-- **Live Entegrasyonu** — TextHook metin çıkarır → Live çevirir ve gösterir
+- **GDI Text Hooking** — TextOutW, DrawTextW, ExtTextOutW, GetGlyphOutlineW ve ANSI varyantları
+- **x64 Inline Hooking** — 14-byte JMP ile güvenli fonksiyon yakalama + trampoline
+- **DLL Injection** — CreateRemoteThread + LoadLibraryW ile hedef process'e enjeksiyon
+- **Named Pipe IPC** — Oyun process'i ile launcher arasında düşük gecikmeli iletişim
+- **Glyph Biriktirme** — GetGlyphOutline çağrılarını 50ms timeout ile birleştirir
+- **Tekrar Filtresi** — Ring buffer (10 girdi) ile aynı metni tekrar göndermez
+- **Ayarlanabilir** — Hedef process, hook filtresi, minimum metin uzunluğu
 
-## Nasıl Çalışır
+## Mimari
+
+İki DLL mimarisi:
 
 ```
-Oyun Süreci
-    ↓ MinHook ile fonksiyon yakalama
-Metin Fonksiyonu Çağrılır (TextOutW, DrawText, vb.)
-    ↓ Hook tetiklenir
-Orijinal Metin Yakalanır
-    ↓ Live plugin'e iletilir (varsa)
-Çevrilmiş Metin
-    ↓ Gömülü çeviri (opsiyonel)
-Oyun İçinde Türkçe Metin Görünür
+MakineAI Launcher
+    ↓ LoadLibrary
+makineai-texthook.dll (Plugin DLL)
+    ↓ CreateRemoteThread + LoadLibraryW
+    ↓ (DLL Injection)
+Oyun Process'i
+    ↓
+makineai-hook.dll (Hook DLL)
+    ↓ Inline Hook (14-byte JMP)
+    ↓ TextOutW, DrawTextW, ExtTextOutW...
+    ↓ Yakalanan metin
+    ↓ Named Pipe (\\.\pipe\MakineAI_TextHook_{PID})
+    ↓
+makineai-texthook.dll (Pipe Server)
+    ↓
+Launcher → Çeviri Pipeline
 ```
 
-## Desteklenen Oyun Motorları
+| DLL | Boyut | Görev |
+|-----|-------|-------|
+| `makineai-texthook.dll` | ~358 KB | Plugin — injection yönetimi, pipe sunucu, metin toplama |
+| `makineai-hook.dll` | ~157 KB | Hook — oyuna enjekte edilir, GDI fonksiyonlarını yakalar |
 
-| Motor | Yöntem | Durum |
-|-------|--------|-------|
-| Unity (Mono/.NET) | İnline hook | Planlanıyor |
-| Unreal Engine | FText/FString hook | Planlanıyor |
-| RPG Maker MV/MZ | JavaScript köprüsü | Planlanıyor |
-| Ren'Py | Python string yakalama | Planlanıyor |
-| Genel (Win32) | TextOutW, DrawTextW | Planlanıyor |
+## Hook Edilen Fonksiyonlar
+
+| Fonksiyon | Kütüphane | Açıklama |
+|-----------|-----------|----------|
+| `TextOutW` / `TextOutA` | gdi32 | Temel metin çıktısı |
+| `ExtTextOutW` / `ExtTextOutA` | gdi32 | Genişletilmiş metin çıktısı |
+| `DrawTextW` / `DrawTextA` | user32 | Dikdörtgen içinde metin |
+| `DrawTextExW` / `DrawTextExA` | user32 | Genişletilmiş dikdörtgen metin |
+| `GetGlyphOutlineW` / `GetGlyphOutlineA` | gdi32 | Glyph bazlı metin (glyph biriktirme ile) |
 
 ## Kurulum
 
-### MakineAI Launcher Üzerinden (Önerilen)
-1. MakineAI Launcher'ı açın
-2. **Ayarlar → Eklentiler** sayfasına gidin
-3. **MakineAI TextHook** yanındaki **"Kur"** butonuna tıklayın
+### MakineAI Launcher üzerinden (önerilen)
+1. Ayarlar → Eklentiler → **MakineAI TextHook** → **Kur**
+2. Eklentiyi etkinleştir
+3. Hedef oyun process adını girin
+4. Hook'u başlatın
 
-### Manuel Kurulum
+### Elle kurulum
 1. [Releases](https://github.com/MakineCeviri/MakineAI-Plugin-TextHook/releases) sayfasından `.makine` dosyasını indirin
-2. `AppData/Local/MakineAI/plugins/texthook/` dizinine çıkartın
-3. Launcher'ı yeniden başlatın
+2. Launcher → Eklentiler → **Dosya Seç** ile yükleyin
+
+## Ayarlar
+
+| Ayar | Tür | Varsayılan | Açıklama |
+|------|-----|------------|----------|
+| Hook Aktif | Toggle | Kapalı | Ana açma/kapama |
+| Hedef İşlem | Metin | — | Oyun exe adı (ör: game.exe) |
+| Hook Filtresi | Seçim | Tümü | all, textout, drawtext, glyph |
+| Min Metin Uzunluğu | Seçim | 2 | 1-10 karakter minimum |
+| Tekrar Filtresi | Toggle | Açık | Aynı metni tekrar gönderme |
 
 ## Uyarılar
 
-- **Yönetici yetkisi gerektirir** — Başka süreçlere erişim için UAC yükseltme gerekir
-- **Anti-cheat uyumsuzluğu** — EAC, BattlEye, Vanguard kullanan oyunlarda çalışmaz
-- **Antivirüs uyarısı** — Hooking davranışı antivirüs yazılımlarını tetikleyebilir
+- **Yönetici yetkileri** gerekebilir (process enjeksiyonu için)
+- **Anti-cheat** sistemleri (EAC, BattlEye) ile uyumsuz olabilir
+- **Antivirüs** yazılımları DLL enjeksiyonunu şüpheli bulabilir — false positive
 
 ## Geliştirme
 
 ### Gereksinimler
 - CMake 3.25+
-- MinGW GCC 13.1+
-- Ninja (opsiyonel)
+- C++23 derleyici (MSVC 2022 veya MinGW GCC 13.1+)
+- Windows 10/11 SDK
 
 ### Derleme
 ```bash
-cmake -B build -G Ninja -DCMAKE_CXX_COMPILER=g++
-cmake --build build
+mkdir build && cd build
+cmake .. -G Ninja
+cmake --build .
 ```
 
+İki DLL üretilir: `makineai-texthook.dll` (plugin) ve `makineai-hook.dll` (injected).
+
 ### Paketleme
+Her iki DLL de `.makine` paketine dahil edilmelidir:
 ```bash
-pip install zstandard
-python makine-pack.py ./build/release/
+python makine-pack.py build/release -o makineai-texthook.makine
 ```
+
+`makine-pack.py` aracını [MakineAI-Plugin-Template](https://github.com/MakineCeviri/MakineAI-Plugin-Template) deposundan edinebilirsiniz.
 
 ## Proje Yapısı
 
 ```
-├── manifest.json              — Eklenti meta verileri
-├── CMakeLists.txt             — Derleme yapılandırması
-├── include/makineai/plugin/   — Plugin SDK başlık dosyaları
-└── src/
-    ├── plugin.cpp             — Giriş noktası (5 zorunlu export)
-    └── hook_core.cpp          — Hook yönetimi ve koordinasyon
+├── manifest.json              — Eklenti meta verileri ve ayar tanımları
+├── CMakeLists.txt             — Her iki DLL için derleme yapılandırması
+├── src/                       — Plugin DLL kaynakları
+│   ├── plugin.cpp             — C ABI giriş noktası
+│   ├── hook_manager.h/cpp     — Process injection + pipe sunucu
+│   └── settings.h             — Ayar kalıcılığı
+├── hook/                      — Hook DLL kaynakları (oyuna enjekte edilir)
+│   ├── dllmain.cpp            — DLL giriş noktası + hook kurulumu
+│   ├── text_hooks.h/cpp       — GDI/User32 metin fonksiyon hook'ları
+│   └── pipe_client.h/cpp      — Named pipe istemci
+└── include/
+    └── makineai/plugin/       — Plugin SDK başlıkları
 ```
 
 ## Yol Haritası
 
-- [x] Plugin iskeleti ve C ABI uyumluluğu
-- [ ] MinHook entegrasyonu
-- [ ] Genel Win32 text hook (TextOutW, DrawTextW)
-- [ ] Unity Mono hook handler
-- [ ] Unreal Engine hook handler
-- [ ] RPG Maker MV/MZ handler
-- [ ] Gömülü çeviri (embedded translation)
-- [ ] Live plugin entegrasyonu
-- [ ] Hook yapılandırma arayüzü
+- [x] x64 inline hooking (14-byte JMP + trampoline)
+- [x] GDI text function hooks (10 fonksiyon)
+- [x] Named pipe IPC
+- [x] Glyph biriktirme (50ms timeout)
+- [x] Ring buffer tekrar filtresi
+- [x] Process injection/ejection
+- [ ] Engine-specific hooks (Unity IL2CPP, RPG Maker, Ren'Py)
+- [ ] Hardware breakpoint hooks (VEH)
+- [ ] H-code desteği (Textractor uyumlu)
+- [ ] Otomatik process algılama
 
 ## Katkıda Bulunma
 
-Katkılarınızı bekliyoruz! Özellikle yeni oyun motoru handler'ları için PR'lar memnuniyetle karşılanır.
+Katkılarınızı bekliyoruz! Özellikle yeni oyun motoru handler'ları çok değerli.
+
+1. Fork edin
+2. Feature branch oluşturun (`feat/unity-handler`)
+3. Değişikliklerinizi commit edin
+4. Pull Request açın
 
 ## Lisans
 
-GPL-3.0
+[GPL-3.0](LICENSE)
