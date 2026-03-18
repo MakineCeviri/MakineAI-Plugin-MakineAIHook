@@ -1,5 +1,5 @@
 #include "makineai/plugin/plugin_api.h"
-#include "hook_manager.h"
+#include "hooking/hook_manager.h"
 #include "settings.h"
 
 #include <string>
