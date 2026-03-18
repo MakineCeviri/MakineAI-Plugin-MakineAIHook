@@ -1,22 +1,29 @@
 {
-    "id": "com.makineceviri.texthook",
-    "name": "MakineAI TextHook",
-    "version": "0.1.0",
+    "id": "com.makineceviri.makineaihook",
+    "name": "MakineAI Hook",
+    "version": "0.2.0",
     "apiVersion": 1,
     "category": "hook",
-    "description": "Game text extraction via process hooking",
+    "description": "Game text extraction via process hooking, asset parsing, and memory scanning",
     "author": "MakineAI Team",
     "license": "GPL-3.0",
-    "homepage": "https://github.com/MakineCeviri/MakineAI-Plugin-TextHook",
-    "entry": "makineai-texthook.dll",
+    "homepage": "https://github.com/MakineCeviri/MakineAI-Plugin-MakineAIHook",
+    "entry": "makineaihook.dll",
     "dependencies": [],
-    "capabilities": ["process", "hook"],
+    "capabilities": ["process", "hook", "parser", "memory"],
     "features": [
         "GDI text hooking (TextOut, DrawText, ExtTextOut)",
         "GetGlyphOutline hooking",
         "Process injection (CreateRemoteThread)",
         "Named pipe IPC",
-        "Auto text deduplication"
+        "Auto text deduplication",
+        "Unity AssetBundle/resources.assets parsing",
+        "Unreal Engine PAK archive parsing",
+        "Bethesda BA2 archive parsing",
+        "GameMaker data.win parsing",
+        "Engine auto-detection from game files",
+        "Process memory scanning for Turkish text",
+        "Encoding obfuscation detection"
     ],
     "platforms": ["win64"],
     "minLauncherVersion": "0.1.0",
@@ -52,6 +59,12 @@
             "type": "toggle",
             "label": "Tekrar Filtresi",
             "default": "true"
+        },
+        {
+            "key": "memoryScanning",
+            "type": "toggle",
+            "label": "Bellek Tarama",
+            "default": "false"
         }
     ]
 }

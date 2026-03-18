@@ -1,0 +1,9 @@
+{
+    "name": "makineaihook",
+    "version": "0.2.0",
+    "dependencies": [
+        "zlib",
+        "lz4",
+        "nlohmann-json"
+    ]
+}
