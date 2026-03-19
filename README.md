@@ -1,14 +1,16 @@
 # Makine Hook
 
-> Oyun cevirisi icin super arac seti -- hooking, asset analizi, bellek tarama
+> Oyun çevirisi için süper araç seti — hooking, asset analizi, bellek tarama
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
 [![Platform: win64](https://img.shields.io/badge/Platform-win64-lightgrey.svg)]()
 [![API Version: 1](https://img.shields.io/badge/Plugin%20API-v1-green.svg)]()
 
+Bu eklenti, açık kaynak kodlu **[Makine Launcher](https://github.com/MakineCeviri/Makine-Launcher)** uygulamasının resmi eklentisidir. Makine Launcher, Türkçe oyun çeviri paketlerini yöneten ücretsiz bir masaüstü uygulamasıdır.
+
 ## Nedir?
 
-Makine Hook, [Makine Launcher](https://github.com/MakineCeviri/Makine-Launcher) icin gelistirilen topluluk eklentisidir. Oyun metinlerini yakalamak, oyun dosyalarini analiz etmek ve bellekten metin cikarmak icin gereken tum araclari tek bir eklentide toplar. Iki DLL mimarisi ile calisir: plugin DLL (Launcher tarafindan yuklenir) ve hook DLL (oyun process'ine enjekte edilir).
+Makine Hook, oyun metinlerini yakalamak, oyun dosyalarını analiz etmek ve bellekten metin çıkarmak için gereken tüm araçları tek bir eklentide toplar. İki DLL mimarisi ile çalışır: plugin DLL (Launcher tarafından yüklenir) ve hook DLL (oyun process'ine enjekte edilir).
 
 ## Ozellikler
 
