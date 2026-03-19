@@ -6,7 +6,7 @@
     "category": "hook",
     "description": "Game text extraction via process hooking, asset parsing, and memory scanning",
     "author": "Makine Team",
-    "license": "GPL-3.0",
+    "license": "AGPL-3.0-only WITH Commons-Clause",
     "homepage": "https://github.com/MakineCeviri/Makine-LauncherPlugin-Hook",
     "entry": "makine-hook-plugin.dll",
     "dependencies": [],
